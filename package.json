@@ -1,0 +1,15 @@
+{
+  "name": "soft-simd",
+  "version": "1.0.0",
+  "description": "Softfloat WebAssembly SIMD",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pikapikapikachuuu/soft-simd"
+  },
+  "author": "pika",
+  "license": "MIT"
+}
