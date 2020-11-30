@@ -38,7 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
 
+#include "websimd.h"
 #include "softfloat.hpp"
+#include <wasm_simd128.h>
 
 uint_fast8_t globalDetectTininess = tininess_afterRounding;
 
@@ -138,6 +140,9 @@ bool softdouble::operator<=(const softdouble& a) const {
 
 // Overloads for math function(s)
 softdouble sqrt(const softdouble& a) { return f64_sqrt(a); }
+
+// SIMD functions
+float64_t f64_add_simd(float64_t, float64_t);
 
 /*----------------------------------------------------------------------------
  *----------------------------------------------------------------------------*/
@@ -1431,4 +1436,34 @@ static struct uint128 softfloat_mul64To128(uint64_t a, uint64_t b) {
   z.v0 += mid;
   z.v64 += (z.v0 < mid);
   return z;
+}
+
+
+// intrin_portable.h
+// typedef __m128d rx_vec_f128
+// #define rx_load_vec_f128 _mm_load_pd
+// #define rx_add_vec_f128 _mm_add_pd
+
+typedef v128_t vec_f128;
+
+// TODO
+typedef union suf_f128 {
+  int64_t i;
+  uint64_t u;
+  double f;
+} suf_f128;
+
+#define load_vec_f128 wasm_v128_load;
+#define store_vec_f128 wasm_v128_store;
+
+vec_f128 add_vec_f128(vec_f128 a, vec_f128 b) {
+  // cast -> add -> cast
+}
+
+// _mm_cvtpd_ps
+// [scalarized]: the underlying x86 SSE instruction is not exposed by the Wasm SIMD specification, so it must be emulated via a slow path, e.g. a sequence of several slower SIMD instructions, or a scalar implementation.
+vec_f128 to_soft_vec_f128(vec_f128 a) {
+  // suf64 s;
+  // s.f = a;
+  // v = s.u;
 }

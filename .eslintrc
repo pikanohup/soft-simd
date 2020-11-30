@@ -1,7 +1,12 @@
 {
   "extends": "vue",
+  "env": {
+    "node": true
+  },
+  "globals": {
+    "WebAssembly": true
+  },
   "parserOptions": {
-    "ecmaVersion": 11,
-    "sourceType": "module"
+    "ecmaVersion": 11
   }
 }
