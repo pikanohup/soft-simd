@@ -4,7 +4,7 @@
   "description": "Softfloat WebAssembly SIMD",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "perf": "node perf.js"
   },
   "repository": {
     "type": "git",
@@ -18,6 +18,7 @@
     "eslint-config-vue": "^2.0.2",
     "eslint-plugin-html": "^6.1.0",
     "eslint-plugin-vue": "^6.2.2",
+    "generic-pool": "^3.7.1",
     "puppeteer": "^5.2.1"
   }
 }

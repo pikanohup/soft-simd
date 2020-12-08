@@ -38,8 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
 
-#include "websimd.h"
 #include "softfloat.hpp"
+
 #include <wasm_simd128.h>
 
 uint_fast8_t globalDetectTininess = tininess_afterRounding;

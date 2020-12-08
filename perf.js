@@ -1,14 +1,14 @@
 const Benchmark = require('benchmark')
-const puppeteer = require('puppeteer')
 const { WASMDriver } = require('./lib/wasm-driver')
+const { Task, PuppeteerPool } = require('./lib/puppeteer-pool')
 
 const log = (message) => {
   console.log(message)
 }
 
-const addAdditionCase = async (suite, page) => {
-  const driver = await new WASMDriver('baseline')
-  await page.exposeFunction('myTest', (a, b) => {
+const addBaselineCase = async (suite, page) => {
+  const driver = await new WASMDriver('baseline-api')
+  await page.exposeFunction('add', (a, b) => {
     return driver.add(a, b)
   })
   suite.add('Addition', {
@@ -17,7 +17,7 @@ const addAdditionCase = async (suite, page) => {
       await page.evaluate(async () => {
         const a = 6
         const b = 6
-        const result = await window.myTest(a, b)
+        const result = await window.add(a, b)
         console.log(`test result of ${a} + ${b} is ${result}`)
       })
       deferred.resolve()
@@ -25,25 +25,36 @@ const addAdditionCase = async (suite, page) => {
   })
 }
 
-;(async () => {
-  const browser = await puppeteer.launch({
-    headless: true,
-    defaultViewport: {
-      width: 1366,
-      height: 768,
-      isMobile: false
-    },
-    args: [
-      '--no-sandbox',
-      '--disable-gpu'
-    ]
+const addSoftsimdCase = async (suite, page) => {
+  const driver = await new WASMDriver('softsimd-api')
+  await page.exposeFunction('add', (a, b) => {
+    return driver.add(a, b)
   })
-  const page = await browser.newPage()
+  suite.add('Addition', {
+    'defer': true,
+    'fn': async (deferred) => {
+      await page.evaluate(async () => {
+        const a = 6
+        const b = 6
+        const result = await window.add(a, b)
+        console.log(`test result of ${a} + ${b} is ${result}`)
+      })
+      deferred.resolve()
+    }
+  })
+}
 
+const perfTask = new Task(async (browser, suite, addCase) => {
+  const page = await browser.newPage()
+  await addCase(suite, page)
+})
+
+;(async () => {
+  const puppeteerPool = await new PuppeteerPool()
   // eslint-disable-next-line new-parens
   const suite = new Benchmark.Suite
 
-  await addAdditionCase(suite, page)
+  await puppeteerPool.queue(perfTask, suite, addSoftsimdCase)
 
   suite.on('cycle', (event) => {
     log(`=== ${event.target.name} ===`)
@@ -58,8 +69,7 @@ const addAdditionCase = async (suite, page) => {
     .on('complete', async (event) => {
       log(`\n -----------------------------------`)
       log(`Finished testing ${event.currentTarget.length} cases \n`)
-      await page.close()
-      await browser.close()
+      await puppeteerPool.clear()
     })
   suite.run({
     'async': true
