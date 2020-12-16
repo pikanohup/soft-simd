@@ -1,6 +1,7 @@
 const Benchmark = require('benchmark')
 const { WASMDriver } = require('./lib/wasm-driver')
 const { Task, PuppeteerPool } = require('./lib/puppeteer-pool')
+const { DOUBLE_SIZE } = require('./lib/constants')
 
 const log = (message) => {
   console.log(message)
@@ -8,18 +9,27 @@ const log = (message) => {
 
 const addBaselineCase = async (suite, page) => {
   const driver = await new WASMDriver('baseline-api')
-  await page.exposeFunction('add', (a, b) => {
-    return driver.add(a, b)
+
+  await page.exposeFunction('addArray', (a, n) => {
+    return driver.addArray(a, n)
   })
   suite.add('Addition', {
     'defer': true,
     'fn': async (deferred) => {
-      await page.evaluate(async () => {
-        const a = 6
-        const b = 6
-        const result = await window.add(a, b)
-        console.log(`test result of ${a} + ${b} is ${result}`)
-      })
+      const n = 4
+      const ptr = driver.malloc(n * DOUBLE_SIZE)
+      for (let i = 0; i < n; i++) {
+        driver.heapDouble[ptr / DOUBLE_SIZE + i] = i * 1.11
+      }
+
+      // ugly but effective :(
+      const result = await page.evaluate(async (ptr, n) => {
+        const result = await window.addArray(ptr, n)
+        return result
+      }, ptr, n)
+      log(`test result is ${result}`)
+
+      driver.free(ptr)
       deferred.resolve()
     }
   })
@@ -54,7 +64,7 @@ const perfTask = new Task(async (browser, suite, addCase) => {
   // eslint-disable-next-line new-parens
   const suite = new Benchmark.Suite
 
-  await puppeteerPool.queue(perfTask, suite, addSoftsimdCase)
+  await puppeteerPool.queue(perfTask, suite, addBaselineCase)
 
   suite.on('cycle', (event) => {
     log(`=== ${event.target.name} ===`)
